@@ -25,6 +25,7 @@ from steelscript.common.service import UserAuth, Auth
 logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 
+# Uncomment to send logging to stdout (print)
 #logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 SERVICENOW_NETIM_SYNC_CUSTOM_ATTRIBUTE_LASTSYNCED = 'Last Synchronized with CMDB'
@@ -356,8 +357,13 @@ def main ():
 	netim_hostname, netim_username, netim_password = credentials_get(args.netim_yml)
 	print(f"Step 3 of 6: Authenticating with NetIM {netim_hostname}")
 	# Authentication to NetIM
-	auth = UserAuth(netim_username, netim_password, method=Auth.BASIC)
-	netim = NetIM(netim_hostname, auth)
+
+	try:
+		auth = UserAuth(netim_username, netim_password, method=Auth.BASIC)
+		netim = NetIM(netim_hostname, auth)
+	except:
+		logger.debug("Unexpected error {}".format(sys.exc_info()[0]))
+		return
 
 	#----- Pull devices to being comparisons -----
 	print("Step 4 of 6: Comparing devices in NetIM with the spreadsheets from ServiceNow")
