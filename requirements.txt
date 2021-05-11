@@ -1,0 +1,17 @@
+certifi==2020.12.5
+chardet==4.0.0
+idna==2.10
+jsonpointer==2.1
+Markdown==3.3.4
+python-dateutil==2.8.1
+PyYAML==5.4.1
+requests==2.25.1
+reschema==2.0
+six==1.15.0
+sleepwalker==2.0
+steelscript==2.1.dev75
+steelscript.appresponse==2.0.4.dev13
+steelscript.netim==0.0.0
+steelscript.netprofiler==2.1.dev5
+uritemplate==3.0.1
+urllib3==1.26.4
