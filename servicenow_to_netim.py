@@ -19,13 +19,13 @@ import yaml
 #	servicenow_relationships_get
 
 import steelscript
-from steelscript.netim.core import NetIM
 from steelscript.common.service import UserAuth, Auth
+from steelscript.common.exceptions import RvbdHTTPException
+from steelscript.netim.core import NetIM
 
 logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 
-# Uncomment to send logging to stdout (print)
 #logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 SERVICENOW_NETIM_SYNC_CUSTOM_ATTRIBUTE_LASTSYNCED = 'Last Synchronized with CMDB'
@@ -134,19 +134,22 @@ def servicenow_to_netim_synchronization_time_update(netim, device_ids):
 
 	return response
 
+# Constants to use for normalized input fields for devices and locations for both CSV and API
+SERVICENOW_NETIM_INPUT_DEVICES_NAME = 'Name'
+SERVICENOW_NETIM_INPUT_DEVICES_CMDBCI = 'CI ID'
+SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS = 'IP Address'
+SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS_EMPTY = '#N/A'
+SERVICENOW_NETIM_INPUT_DEVICES_LOCATION = 'Location'
 
-SERVICENOW_NETIM_CSV_DEVICES_NAME = 'Name'
-SERVICENOW_NETIM_CSV_DEVICES_CMDBCI = 'CI ID'
-SERVICENOW_NETIM_CSV_DEVICES_ADDRESS = 'IP Address'
-SERVICENOW_NETIM_CSV_DEVICES_LOCATION = 'Location'
 
-SERVICENOW_NETIM_CSV_LOCATIONS_NAME = 'Name'
-SERVICENOW_NETIM_CSV_LOCATIONS_CITY = 'City'
-SERVICENOW_NETIM_CSV_LOCATIONS_REGION = 'State / Province'
-SERVICENOW_NETIM_CSV_LOCATIONS_COUNTRY = 'Country'
-SERVICENOW_NETIM_CSV_LOCATIONS_LATITUDE = 'Latitude'
-SERVICENOW_NETIM_CSV_LOCATIONS_LONGITUDE = 'Longitude'
+SERVICENOW_NETIM_INPUT_LOCATIONS_NAME = 'Name'
+SERVICENOW_NETIM_INPUT_LOCATIONS_CITY = 'City'
+SERVICENOW_NETIM_INPUT_LOCATIONS_REGION = 'State / Province'
+SERVICENOW_NETIM_INPUT_LOCATIONS_COUNTRY = 'Country'
+SERVICENOW_NETIM_INPUT_LOCATIONS_LATITUDE = 'Latitude'
+SERVICENOW_NETIM_INPUT_LOCATIONS_LONGITUDE = 'Longitude'
 
+# Constants to use for NetIM site fields
 SERVICENOW_NETIM_SITE_NAME = 'name'
 SERVICENOW_NETIM_SITE_COUNTRY = 'country'
 SERVICENOW_NETIM_SITE_REGION = 'region'
@@ -154,12 +157,14 @@ SERVICENOW_NETIM_SITE_CITY = 'city'
 SERVICENOW_NETIM_SITE_LATITUDE = 'latitude'
 SERVICENOW_NETIM_SITE_LONGITUDE = 'longitude'
 
+# Constants to use for NetIM country, region, and city searches
 SERVICENOW_NETIM_COUNTRY_NAME = 'name'
 SERVICENOW_NETIM_COUNTRY_ID = 'id'
 SERVICENOW_NETIM_REGION_NAME = 'name'
 SERVICENOW_NETIM_REGION_ID = 'id'
 SERVICENOW_NETIM_CITY_NAME = 'name'
 
+# Constants to use for NetIM device attributes
 SERVICENOW_NETIM_DEVICE_NAME = 'name'
 SERVICENOW_NETIM_DEVICE_PRIMARYADDRESS = 'primaryAddress'
 
@@ -168,16 +173,17 @@ def servicenow_netim_csv_import(devices_csv, locations_csv):
 	# Read files and find required fields
 	servicenow_devices = dictionary_from_csv('input/devices.csv')
 	if servicenow_devices == None or len(servicenow_devices) == 0:
-		logger.debug("Device CSV input did not include the expected fields. Please correct and re-run script.")
+		logger.debug("Device INPUT input did not include the expected fields. Please correct and re-run script.")
 		return
 
 	servicenow_locations = dictionary_from_csv('input/locations.csv')
 	if servicenow_locations == None or len(servicenow_locations) == 0:
-		logger.debug("Locations CSV input did not include the expected fields. Please correct and re-run script.")
+		logger.debug("Locations INPUT input did not include the expected fields. Please correct and re-run script.")
 		return
 
 	return servicenow_devices, servicenow_locations	
 
+# Constants to use for location comparison lists in comparison dictionary
 SERVICENOW_NETIM_LOCATION_COMPARISON_MATCH = 'match_all'
 SERVICENOW_NETIM_LOCATION_COMPARISON_COUNTRY_EMPTY = 'country_empty'
 SERVICENOW_NETIM_LOCATION_COMPARISON_COUNTRY_NOT_FOUND = 'country_not_found'
@@ -186,8 +192,6 @@ SERVICENOW_NETIM_LOCATION_COMPARISON_REGION_NOT_FOUND = 'region_not_found'
 SERVICENOW_NETIM_LOCATION_COMPARISON_CITY_EMPTY = 'city_empty'
 SERVICENOW_NETIM_LOCATION_COMPARISON_CITY_NOT_FOUND = 'city_not_found'
 SERVICENOW_NETIM_LOCATION_COMPARISON_COORDINATES_MISSING = 'coordinates_missing'
-
-SERVICENOW_NETIM_COUNTRY_NAME = 'name'
 
 def servicenow_netim_location_comparison (netim, sites_to_import):
 
@@ -222,7 +226,7 @@ def servicenow_netim_location_comparison (netim, sites_to_import):
 		site_country = site[SERVICENOW_NETIM_SITE_COUNTRY]
 		if site_country  == "":
 			country_empty = True
-			pass	
+			continue
 
 		for country in countries:
 			country_name = country[SERVICENOW_NETIM_COUNTRY_NAME]
@@ -300,8 +304,8 @@ def main ():
 		data in NetIM")
 	parser.add_argument('--servicenow_yml', help='ServiceNow account credentials')
 	parser.add_argument('--netim_yml', help='NetIM account credentials')
-	parser.add_argument('--servicenow_devices_csv', help='Export of CSV devices from ServiceNow')
-	parser.add_argument('--servicenow_locations_csv', help='Export of CSV devices from ServiceNow')
+	parser.add_argument('--servicenow_devices_csv', help='Export of INPUT devices from ServiceNow')
+	parser.add_argument('--servicenow_locations_csv', help='Export of INPUT devices from ServiceNow')
 	parser.add_argument('--summary', type=bool, help='Print summary or full report detail')
 	args = parser.parse_args()
 
@@ -314,59 +318,118 @@ def main ():
 	else:
 		text = 'API'
 	print("")
-	print(f"Step 1 of 6: Getting device and location information from ServiceNow {text}")
+	print(f"Step 1 of 7: Getting device and location information from ServiceNow {text}")
 	if args.servicenow_yml != None:
-		# Pull devices and locations from ServiceNow
+		# Pull devices and locations from ServiceNow using the ServiceNow API
+		### Yet to be implemented
 		servicenow_devices = None
 		servicenow_locations = None
+
 	elif args.servicenow_devices_csv != None and args.servicenow_locations_csv != None:
 		# Pull devices and locations from CSV spreadsheets
 		servicenow_devices, servicenow_locations = servicenow_netim_csv_import(args.servicenow_devices_csv,
 			args.servicenow_locations_csv)
+
 	else:
 		# Notify user that information is missing
-		pass
+		logger.info("Input does not specify complete ServiceNow parameters")
+		return
+
+	print("Step 2 of 7: Validating input from ServiceNow")
+	# Check for duplicate names and valid IP addresses
+	devices_with_empty_addresses = {}
+	servicenow_device_dict = {}
+	multiple_addresses_set = set()
+
+	for servicenow_device in servicenow_devices:
+		servicenow_device_name = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_NAME]
+		servicenow_device_address = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS].strip()
+		if servicenow_device_address == SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS_EMPTY:
+			if servicenow_device_name in devices_with_empty_addresses:
+				devices_with_empty_addresses[servicenow_device_name].append(servicenow_device)
+			else:
+				devices_with_empty_addresses[servicenow_device_name] = [servicenow_device]
+			continue
+
+		if servicenow_device_name in servicenow_device_dict:
+			multiple_addresses_set.update([servicenow_device_name])
+			servicenow_device_dict[servicenow_device_name].append(servicenow_device)
+		else:
+			servicenow_device_dict[servicenow_device_name] = [servicenow_device]
+
+	devices_with_multiple_addresses = list(multiple_addresses_set)
+	devices_with_multiple_addresses_count = len(devices_with_multiple_addresses)
+	if devices_with_multiple_addresses_count > 0:
+		print("")
+		print(f"There are {devices_with_multiple_addresses_count} devices that have multiple listed IP addresses.")
+		if devices_with_multiple_addresses_count > 10 and args.summary == True:
+			print("Displaying the first 10 devices with multiple IP addresses:")
+			print(devices_with_multiple_addresses[:10])
+		else:
+			for device in devices_with_multiple_addresses:
+				print(f"The device {device} has multiple addresses:")
+				for entry in servicenow_device_dict[device]:
+					name = entry[SERVICENOW_NETIM_INPUT_DEVICES_NAME]
+					cmdb_ci = entry[SERVICENOW_NETIM_INPUT_DEVICES_CMDBCI]
+					address = entry[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS]
+					location = entry[SERVICENOW_NETIM_INPUT_DEVICES_LOCATION]
+					print(f"{name}, {cmdb_ci}, {address}, {location}")
+		print("")
+
+	# Without having other criteria, for now, choose the first IP address for each device name as the primary access address
+	servicenow_devices_to_import = []
+	for servicenow_device_key in servicenow_device_dict:
+		servicenow_devices_to_import.append(servicenow_device_dict[servicenow_device_key][0])
 
 	# Get unique list of locations from the devices that may be imported	
 	devlocation_set = set()
-	for device in servicenow_devices:
-		devlocation = device[SERVICENOW_NETIM_CSV_DEVICES_LOCATION]
+	for device in servicenow_devices_to_import:
+		devlocation = device[SERVICENOW_NETIM_INPUT_DEVICES_LOCATION]
 		devlocation_set.update([devlocation.strip()])
 	servicenow_devlocations = list(devlocation_set)
 
-	print("Step 2 of 6: Identifying sites that have actively polled devices")
+	print("Step 3 of 7: Identifying sites that have actively polled devices")
 	# Get the list of locations that are assigned to devices being imported into ServiceNow
 	# and use them to pull the required information from the locations table
 	sites_to_import = []
 	for devlocation_name in servicenow_devlocations:
 		if devlocation_name == "":
-			pass
+			continue
 		for location in servicenow_locations:
-			if devlocation_name == location[SERVICENOW_NETIM_CSV_LOCATIONS_NAME].strip():
+			if devlocation_name == location[SERVICENOW_NETIM_INPUT_LOCATIONS_NAME].strip():
 				site_to_import = \
-					{SERVICENOW_NETIM_SITE_NAME:location[SERVICENOW_NETIM_CSV_LOCATIONS_NAME],
-					SERVICENOW_NETIM_SITE_CITY:location[SERVICENOW_NETIM_CSV_LOCATIONS_CITY],
-					SERVICENOW_NETIM_SITE_REGION:location[SERVICENOW_NETIM_CSV_LOCATIONS_REGION],
-					SERVICENOW_NETIM_SITE_COUNTRY:location[SERVICENOW_NETIM_CSV_LOCATIONS_COUNTRY],
-					SERVICENOW_NETIM_SITE_LONGITUDE:location[SERVICENOW_NETIM_CSV_LOCATIONS_LONGITUDE],
-					SERVICENOW_NETIM_SITE_LATITUDE:location[SERVICENOW_NETIM_CSV_LOCATIONS_LATITUDE]}
+					{SERVICENOW_NETIM_SITE_NAME:location[SERVICENOW_NETIM_INPUT_LOCATIONS_NAME],
+					SERVICENOW_NETIM_SITE_CITY:location[SERVICENOW_NETIM_INPUT_LOCATIONS_CITY],
+					SERVICENOW_NETIM_SITE_REGION:location[SERVICENOW_NETIM_INPUT_LOCATIONS_REGION],
+					SERVICENOW_NETIM_SITE_COUNTRY:location[SERVICENOW_NETIM_INPUT_LOCATIONS_COUNTRY],
+					SERVICENOW_NETIM_SITE_LONGITUDE:location[SERVICENOW_NETIM_INPUT_LOCATIONS_LONGITUDE],
+					SERVICENOW_NETIM_SITE_LATITUDE:location[SERVICENOW_NETIM_INPUT_LOCATIONS_LATITUDE]}
 				sites_to_import.append(site_to_import)
 
 	#---- NetIM API -----
 
 	netim_hostname, netim_username, netim_password = credentials_get(args.netim_yml)
-	print(f"Step 3 of 6: Authenticating with NetIM {netim_hostname}")
-	# Authentication to NetIM
+	print(f"Step 4 of 7: Authenticating with NetIM {netim_hostname}")
+	if netim_password == None or netim_password == "":
+		print("Please provide password for user {netim_username} on NetIM {netim_hostname}")
+		netim_password = getpass.getpass()
 
+	# Authentication to NetIM
 	try:
 		auth = UserAuth(netim_username, netim_password, method=Auth.BASIC)
 		netim = NetIM(netim_hostname, auth)
+	except RvbdHTTPException as e:
+		logger.debug(f"RvbdHTTPException: {e}")
+		return
+	except NameError as e:
+		logger.debug(f"NameError: {e}")
+		return
 	except:
 		logger.debug("Unexpected error {}".format(sys.exc_info()[0]))
 		return
 
 	#----- Pull devices to being comparisons -----
-	print("Step 4 of 6: Comparing devices in NetIM with the spreadsheets from ServiceNow")
+	print("Step 5 of 7: Comparing devices in NetIM with the inputs from ServiceNow")
 	# Check device name, access address, CMDB CI
 	netim_devices_json = netim.get_all_devices()
 	netim_devices = []
@@ -377,14 +440,14 @@ def main ():
 	devices_with_no_updates = []
 	different_addresses = []
 
-	for servicenow_device in servicenow_devices:
+	for servicenow_device in servicenow_devices_to_import:
 		found_device = found_address = False
-		servicenow_device_name = servicenow_device[SERVICENOW_NETIM_CSV_DEVICES_NAME]
+		servicenow_device_name = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_NAME]
 		for netim_device in netim_devices:
 			netim_device_name = netim_device[SERVICENOW_NETIM_DEVICE_NAME]
 			if servicenow_device_name == netim_device_name:
 				netim_device_address = netim_device[SERVICENOW_NETIM_DEVICE_PRIMARYADDRESS]
-				if servicenow_device[SERVICENOW_NETIM_CSV_DEVICES_ADDRESS] != netim_device_address:
+				if servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS] != netim_device_address:
 					found_device = found_address = True
 					break
 				found_device = True
@@ -401,7 +464,7 @@ def main ():
 	# Report output
 	new_devices_count = len(new_devices)
 	print("")
-	print(f"There are {new_devices_count} devices that do not exist in NetIM.")
+	print(f"There are {new_devices_count} devices with IP addresses that do not exist in NetIM.")
 	if new_devices_count > 10 and args.summary:
 		print("Displaying the first 10 devices:")
 		print(new_devices[:10])	
@@ -433,7 +496,7 @@ def main ():
 	#----- Code that compares existing groups/sites to those in file -----
 
 	print("")
-	print("Step 5 of 6: Comparing site and groups in NetIM with the spreadsheets from ServiceNow")
+	print("Step 6 of 7: Comparing site and groups in NetIM with the inputs from ServiceNow")
 	print("")
 	groups_json = netim.get_all_groups()
 	groups = []
@@ -463,18 +526,17 @@ def main ():
 	print("")
 	existing_site_count = len(existing_sites)
 	if existing_site_count == 0:
-		print("No existing sites matched in NetIM database.")
+		print("No sites to be imported matched existing names in NetIM database.")
 	elif existing_site_count > 10 and args.summary:
 		print("Displaying the first 10 sites:")
 		print("The following {existing_site_count} site(s) have been defined in NetIM:")
 	else:
 		print(existing_sites)
-	print("")
 
 	#----- Code to compare geographical information -----
 
 	print("")
-	print("Step 6 of 6: Comparing location information in NetIM with the spreadsheets from ServiceNow")
+	print("Step 7 of 7: Comparing location information in NetIM with the inputs from ServiceNow")
 	print("")
 
 
@@ -501,12 +563,13 @@ def main ():
 	if len(comparison_dict[SERVICENOW_NETIM_LOCATION_COMPARISON_COUNTRY_EMPTY]) > 0:
 		print("The following sites had no country listed in input:")
 		print(comparison_dict[SERVICENOW_NETIM_LOCATION_COMPARISON_COUNTRY_EMPTY])
-
-	print("")
 	if len(comparison_dict[SERVICENOW_NETIM_LOCATION_COMPARISON_COORDINATES_MISSING]) > 0:
 		print("The following sites had missing coordinates (latitude, longitude):")
 		print(comparison_dict[SERVICENOW_NETIM_LOCATION_COMPARISON_COORDINATES_MISSING])
 
+	print("")
+	print("End of report")
+	print("---------------------------------------------------------------------------------------------------")
 	#-----
 	# Sync list of devices to NetIM
 	#netim_devices_import(netim_credentials, servicenow_devices)
