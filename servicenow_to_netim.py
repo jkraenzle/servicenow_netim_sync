@@ -33,13 +33,15 @@ SERVICENOW_NETIM_SYNC_CUSTOM_ATTRIBUTE_CMDBCI = 'Configuration ID in CMDB'
 
 # Helper functions
 
+SERVICENOW_NETIM_CSV_ENCODING = 'utf-8-sig'
+
 def read_from_csv(file_path):
 
 	reader = None
 	fields = []
 	rows = []
 	try:
-		with open(file_path, encoding='iso-8859-1', errors='replace') as file:
+		with open(file_path, encoding=SERVICENOW_NETIM_CSV_ENCODING, errors='replace') as file:
 			reader = csv.reader(file, skipinitialspace=True, quoting=csv.QUOTE_MINIMAL)
 			line_count = 0
 			for row in reader:
@@ -60,7 +62,7 @@ def dictionary_from_csv(file_path):
 	fields = []
 	rows = []
 	try:
-		with open(file_path, encoding='iso-8859-1', errors='replace') as file:
+		with open(file_path, encoding=SERVICENOW_NETIM_CSV_ENCODING, errors='replace') as file:
 			reader = csv.DictReader(file, skipinitialspace=True, quoting=csv.QUOTE_MINIMAL)
 			rows = list(reader)
 	except:
@@ -341,6 +343,7 @@ def main ():
 	servicenow_device_dict = {}
 	multiple_addresses_set = set()
 
+	print(servicenow_devices)
 	for servicenow_device in servicenow_devices:
 		servicenow_device_name = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_NAME]
 		servicenow_device_address = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS].strip()
