@@ -343,7 +343,6 @@ def main ():
 	servicenow_device_dict = {}
 	multiple_addresses_set = set()
 
-	print(servicenow_devices)
 	for servicenow_device in servicenow_devices:
 		servicenow_device_name = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_NAME]
 		servicenow_device_address = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS].strip()
