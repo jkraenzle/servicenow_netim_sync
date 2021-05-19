@@ -383,6 +383,7 @@ def main ():
 	servicenow_devices_to_import = []
 	for servicenow_device_key in servicenow_device_dict:
 		servicenow_devices_to_import.append(servicenow_device_dict[servicenow_device_key][0])
+	logger.info("There are {} devices with unique IP addresses from the ServiceNow data".format(len(servicenow_devices_to_import)))
 
 	# Get unique list of locations from the devices that may be imported	
 	devlocation_set = set()
@@ -401,13 +402,14 @@ def main ():
 		for location in servicenow_locations:
 			if devlocation_name == location[SERVICENOW_NETIM_INPUT_LOCATIONS_NAME].strip():
 				site_to_import = \
-					{SERVICENOW_NETIM_SITE_NAME:location[SERVICENOW_NETIM_INPUT_LOCATIONS_NAME],
-					SERVICENOW_NETIM_SITE_CITY:location[SERVICENOW_NETIM_INPUT_LOCATIONS_CITY],
-					SERVICENOW_NETIM_SITE_REGION:location[SERVICENOW_NETIM_INPUT_LOCATIONS_REGION],
-					SERVICENOW_NETIM_SITE_COUNTRY:location[SERVICENOW_NETIM_INPUT_LOCATIONS_COUNTRY],
-					SERVICENOW_NETIM_SITE_LONGITUDE:location[SERVICENOW_NETIM_INPUT_LOCATIONS_LONGITUDE],
-					SERVICENOW_NETIM_SITE_LATITUDE:location[SERVICENOW_NETIM_INPUT_LOCATIONS_LATITUDE]}
+					{SERVICENOW_NETIM_SITE_NAME:location[SERVICENOW_NETIM_INPUT_LOCATIONS_NAME].strip(),
+					SERVICENOW_NETIM_SITE_CITY:location[SERVICENOW_NETIM_INPUT_LOCATIONS_CITY].strip(),
+					SERVICENOW_NETIM_SITE_REGION:location[SERVICENOW_NETIM_INPUT_LOCATIONS_REGION].strip(),
+					SERVICENOW_NETIM_SITE_COUNTRY:location[SERVICENOW_NETIM_INPUT_LOCATIONS_COUNTRY].strip(),
+					SERVICENOW_NETIM_SITE_LONGITUDE:location[SERVICENOW_NETIM_INPUT_LOCATIONS_LONGITUDE].strip(),
+					SERVICENOW_NETIM_SITE_LATITUDE:location[SERVICENOW_NETIM_INPUT_LOCATIONS_LATITUDE].strip()}
 				sites_to_import.append(site_to_import)
+	logger.info("Retrieved {} sites(s) from ServiceNow associated with polled devices".format(len(sites_to_import)))
 
 	#---- NetIM API -----
 
@@ -441,31 +443,48 @@ def main ():
 	netim_devices = []
 	if netim_devices_json != None and 'items' in netim_devices_json:
 		netim_devices = netim_devices_json['items']
-
+	logger.info("Retrieved {} device(s) from NetIM".format(len(netim_devices)))
+	
 	new_devices = []
 	devices_with_no_updates = []
 	different_addresses = []
 
 	for servicenow_device in servicenow_devices_to_import:
 		found_device = found_address = False
-		servicenow_device_name = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_NAME]
+		servicenow_device_name = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_NAME].strip()
+
 		for netim_device in netim_devices:
 			if SERVICENOW_NETIM_DEVICE_NAME not in netim_device:
+				logger.debug(f"Skipping device with no field {SERVICENOW_NETIM_DEVICE_NAME}")
 				continue
-			netim_device_name = netim_device[SERVICENOW_NETIM_DEVICE_NAME]
+			netim_device_name = netim_device[SERVICENOW_NETIM_DEVICE_NAME].strip()
+
 			if servicenow_device_name == netim_device_name:
-				# Confirm that the primary address is in the device before accessing
-				if SERVICENOW_NETIM_DEVICE_ACCESSINFO in netim_device \
-					and SERVICENOW_NETIM_DEVICE_ACCESSADDRESS in netim_device[SERVICENOW_NETIM_DEVICE_ACCESSINFO]:
-					netim_device_address = netim_device[SERVICENOW_NETIM_DEVICE_ACCESSINFO][SERVICENOW_NETIM_DEVICE_ACCESSADDRESS]
-					if servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS] != netim_device_address:
-						found_device = found_address = True
-						break
-					found_device = True
+				found_device = True
+
+				# Find address in the data from NetIM
+				netim_device_address = None
+				if SERVICENOW_NETIM_DEVICE_ACCESSADDRESS in netim_device:
+					netim_device_address = netim_device[SERVICENOW_NETIM_DEVICE_ACCESSADDRESS].strip()
+
+				# If address has not changed and was not found in the first location, continue searching
+				if netim_device_address == None or netim_device_address == "":
+					if SERVICENOW_NETIM_DEVICE_ACCESSINFO in netim_device and \
+						SERVICENOW_NETIM_DEVICE_ACCESSADDRESS in netim_device[SERVICENOW_NETIM_DEVICE_ACCESSINFO]:
+						netim_device_address = netim_device[SERVICENOW_NETIM_DEVICE_ACCESSINFO][SERVICENOW_NETIM_DEVICE_ACCESSADDRESS].strip()
+
+				# Compare ServiceNow address for device with NetIM's address
+				servicenow_device_address = None
+				if SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS in servicenow_device:
+					servicenow_device_address = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS]
+				
+				if servicenow_device_address == netim_device_address:
+					found_address = True
 					break
+				break
 
 		if found_device == True:
-			if different_addresses == True:
+			if found_address == True:
 				devices_with_no_updates.append(servicenow_device_name)
 			else:
 				different_addresses.append(servicenow_device_name)
