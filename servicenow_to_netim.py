@@ -440,7 +440,6 @@ def main ():
 	netim_devices = []
 	if netim_devices_json != None and 'items' in netim_devices_json:
 		netim_devices = netim_devices_json['items']
-	print(netim_devices)
 
 	new_devices = []
 	devices_with_no_updates = []
@@ -450,6 +449,8 @@ def main ():
 		found_device = found_address = False
 		servicenow_device_name = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_NAME]
 		for netim_device in netim_devices:
+			if SERVICENOW_NETIM_DEVICE_NAME not in netim_device:
+				continue
 			netim_device_name = netim_device[SERVICENOW_NETIM_DEVICE_NAME]
 			if servicenow_device_name == netim_device_name:
 				netim_device_address = netim_device[SERVICENOW_NETIM_DEVICE_PRIMARYADDRESS]
