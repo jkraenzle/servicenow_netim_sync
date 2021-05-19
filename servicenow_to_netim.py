@@ -168,7 +168,7 @@ SERVICENOW_NETIM_CITY_NAME = 'name'
 
 # Constants to use for NetIM device attributes
 SERVICENOW_NETIM_DEVICE_NAME = 'name'
-SERVICENOW_NETIM_DEVICE_PRIMARYADDRESS = 'primaryAddress'
+SERVICENOW_NETIM_DEVICE_ACCESSADDRESS = 'accessAddress'
 
 def servicenow_netim_csv_import(devices_csv, locations_csv):
 
@@ -455,8 +455,8 @@ def main ():
 			netim_device_name = netim_device[SERVICENOW_NETIM_DEVICE_NAME]
 			if servicenow_device_name == netim_device_name:
 				# Confirm that the primary address is in the device before accessing
-				if SERVICENOW_NETIM_DEVICE_PRIMARYADDRESS in netim_device:
-					netim_device_address = netim_device[SERVICENOW_NETIM_DEVICE_PRIMARYADDRESS]
+				if SERVICENOW_NETIM_DEVICE_ACCESSADDRESS in netim_device:
+					netim_device_address = netim_device[SERVICENOW_NETIM_DEVICE_ACCESSADDRESS]
 					if servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS] != netim_device_address:
 						found_device = found_address = True
 						break
