@@ -426,6 +426,9 @@ def main ():
 	except NameError as e:
 		logger.debug(f"NameError: {e}")
 		return
+	except TypeError as e:
+		logger.debug(f"TypeError: {e}")
+		return
 	except:
 		logger.debug("Unexpected error {}".format(sys.exc_info()[0]))
 		return
@@ -435,7 +438,7 @@ def main ():
 	# Check device name, access address, CMDB CI
 	netim_devices_json = netim.get_all_devices()
 	netim_devices = []
-	if 'items' in netim_devices_json:
+	if netim_devices_json != None and 'items' in netim_devices_json:
 		netim_devices = netim_devices_json['items']
 
 	new_devices = []
