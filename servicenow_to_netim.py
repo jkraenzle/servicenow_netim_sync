@@ -440,6 +440,7 @@ def main ():
 	netim_devices = []
 	if netim_devices_json != None and 'items' in netim_devices_json:
 		netim_devices = netim_devices_json['items']
+	print(netim_devices)
 
 	new_devices = []
 	devices_with_no_updates = []
