@@ -450,15 +450,19 @@ def main ():
 		servicenow_device_name = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_NAME]
 		for netim_device in netim_devices:
 			if SERVICENOW_NETIM_DEVICE_NAME not in netim_device:
+				print(netim_device)
 				continue
 			netim_device_name = netim_device[SERVICENOW_NETIM_DEVICE_NAME]
 			if servicenow_device_name == netim_device_name:
-				netim_device_address = netim_device[SERVICENOW_NETIM_DEVICE_PRIMARYADDRESS]
-				if servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS] != netim_device_address:
-					found_device = found_address = True
+				if SERVICENOW_NETIM_DEVICE_PRIMARYADDRESS in netim_device_address:
+					netim_device_address = netim_device[SERVICENOW_NETIM_DEVICE_PRIMARYADDRESS]
+					if servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS] != netim_device_address:
+						found_device = found_address = True
+						break
+					found_device = True
 					break
-				found_device = True
-				break
+				else:
+					print(netim_device)
 
 		if found_device == True:
 			if different_addresses == True:
