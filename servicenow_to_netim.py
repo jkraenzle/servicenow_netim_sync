@@ -489,9 +489,10 @@ def main ():
 				# Use the original device address dictionary to get full list of available access addresses
 				servicenow_device_address_list = []
 				if servicenow_device_name in servicenow_device_address_dict:
-					servicenew_device_address_list = servicenow_device_address_dict[servicenow_device_name]
+					servicenow_device_address_list = servicenow_device_address_dict[servicenow_device_name]
 				
 				for servicenow_device in servicenow_device_address_list:
+					logger.info('Comparing addresses')
 					servicenow_device_address = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS].strip()
 					if servicenow_device_address == netim_device_address:
 						found_address = True
