@@ -488,7 +488,7 @@ def main ():
 					servicenew_device_address_list = servicenow_device_address_dict[servicenow_device_name]
 				
 				for servicenow_device in servicenow_device_address_list:
-					servicenow_device_address = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS]
+					servicenow_device_address = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS].strip()
 					if servicenow_device_address == netim_device_address:
 						found_address = True
 						break
