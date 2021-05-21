@@ -460,8 +460,14 @@ def main ():
 				logger.debug(f"Skipping device with no field {SERVICENOW_NETIM_DEVICE_NAME}")
 				continue
 			netim_device_name = netim_device[SERVICENOW_NETIM_DEVICE_NAME].strip()
+			if '.' in netim_device_name:
+				netim_device_name = netim_device_name.split('.')[0]
 			netim_device_displayname = netim_device[SERVICENOW_NETIM_DEVICE_DISPLAYNAME].strip()
+			if '.' in netim_device_displayname:
+				netim_device_displayname = netim_device_displayname.split('.')[0]
 			netim_device_devicename = netim_device[SERVICENOW_NETIM_DEVICE_DEVICENAME].strip()
+			if '.' in netim_device_devicename:
+				netim_device_devicename = netim_device_devicename.split('.')[0]
 
 			if servicenow_device_name.lower() == netim_device_name.lower() \
 				or servicenow_device_name.lower() == netim_device_displayname.lower() \
