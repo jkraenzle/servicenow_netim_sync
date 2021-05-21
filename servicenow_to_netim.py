@@ -463,8 +463,9 @@ def main ():
 			netim_device_displayname = netim_device[SERVICENOW_NETIM_DEVICE_DISPLAYNAME].strip()
 			netim_device_devicename = netim_device[SERVICENOW_NETIM_DEVICE_DEVICENAME].strip()
 
-			if servicenow_device_name == netim_device_name or servicenow_device_name == netim_device_displayname \
-				or servicenow_device_name == netim_device_devicename:
+			if servicenow_device_name.lower() == netim_device_name.lower() \
+				or servicenow_device_name.lower() == netim_device_displayname.lower() \
+				or servicenow_device_name.lower() == netim_device_devicename.lower():
 				found_device = True
 
 				# Find address in the data from NetIM
