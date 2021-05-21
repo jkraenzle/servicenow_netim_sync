@@ -167,6 +167,7 @@ SERVICENOW_NETIM_CITY_NAME = 'name'
 
 # Constants to use for NetIM device attributes
 SERVICENOW_NETIM_DEVICE_NAME = 'name'
+SERVICENOW_NETIM_DEVICE_DEVICENAME = 'deviceName'
 SERVICENOW_NETIM_DEVICE_DISPLAYNAME = 'displayName'
 SERVICENOW_NETIM_DEVICE_ACCESSINFO = 'deviceAccessInfo'
 SERVICENOW_NETIM_DEVICE_ACCESSADDRESS = 'accessAddress'
@@ -460,8 +461,10 @@ def main ():
 				continue
 			netim_device_name = netim_device[SERVICENOW_NETIM_DEVICE_NAME].strip()
 			netim_device_displayname = netim_device[SERVICENOW_NETIM_DEVICE_DISPLAYNAME].strip()
+			netim_device_devicename = netim_device[SERVICENOW_NETIM_DEVICE_DEVICENAME].strip()
 
-			if servicenow_device_name == netim_device_name or servicenow_device_name == netim_device_displayname:
+			if servicenow_device_name == netim_device_name or servicenow_device_name == netim_device_displayname \
+				or servicenow_device_name == netim_device_devicename:
 				found_device = True
 
 				# Find address in the data from NetIM
