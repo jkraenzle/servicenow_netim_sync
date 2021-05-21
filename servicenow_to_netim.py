@@ -152,7 +152,6 @@ SERVICENOW_NETIM_INPUT_LOCATIONS_LONGITUDE = 'Longitude'
 
 # Constants to use for NetIM site fields
 SERVICENOW_NETIM_SITE_NAME = 'name'
-SERVICENOW_NETIM_SITE_DISPLAYNAME = 'displayName'
 SERVICENOW_NETIM_SITE_COUNTRY = 'country'
 SERVICENOW_NETIM_SITE_REGION = 'region'
 SERVICENOW_NETIM_SITE_CITY = 'city'
@@ -168,6 +167,7 @@ SERVICENOW_NETIM_CITY_NAME = 'name'
 
 # Constants to use for NetIM device attributes
 SERVICENOW_NETIM_DEVICE_NAME = 'name'
+SERVICENOW_NETIM_DEVICE_DISPLAYNAME = 'displayName'
 SERVICENOW_NETIM_DEVICE_ACCESSINFO = 'deviceAccessInfo'
 SERVICENOW_NETIM_DEVICE_ACCESSADDRESS = 'accessAddress'
 
@@ -576,6 +576,7 @@ def main ():
 		print(f"The following {existing_site_count} site(s) have already been defined in NetIM.")
 		if existing_site_count > 10 and args.summary:
 			print("Displaying the first 10 sites:")
+			print(existing_sites[:10])
 		else:
 			print(existing_sites)
 
