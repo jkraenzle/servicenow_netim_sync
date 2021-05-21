@@ -339,26 +339,26 @@ def main ():
 		return
 
 	print("Step 2 of 7: Validating input from ServiceNow")
-	# Check for duplicate names and valid IP addresses
+	# Check for duplicate names and valid IP addresses, while building a dictionary to see which devices have multiple listed access addresses
 	devices_with_empty_addresses = {}
-	servicenow_device_dict = {}
+	servicenow_device_address_dict = {}
 	multiple_addresses_set = set()
 
 	for servicenow_device in servicenow_devices:
 		servicenow_device_name = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_NAME]
 		servicenow_device_address = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS].strip()
-		if servicenow_device_address == SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS_EMPTY:
+		if servicenow_device_address == "" or servicenow_device_address == SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS_EMPTY:
 			if servicenow_device_name in devices_with_empty_addresses:
 				devices_with_empty_addresses[servicenow_device_name].append(servicenow_device)
 			else:
 				devices_with_empty_addresses[servicenow_device_name] = [servicenow_device]
 			continue
 
-		if servicenow_device_name in servicenow_device_dict:
+		if servicenow_device_name in servicenow_device_address_dict:
 			multiple_addresses_set.update([servicenow_device_name])
-			servicenow_device_dict[servicenow_device_name].append(servicenow_device)
+			servicenow_device_address_dict[servicenow_device_name].append(servicenow_device)
 		else:
-			servicenow_device_dict[servicenow_device_name] = [servicenow_device]
+			servicenow_device_address_dict[servicenow_device_name] = [servicenow_device]
 
 	devices_with_multiple_addresses = list(multiple_addresses_set)
 	devices_with_multiple_addresses_count = len(devices_with_multiple_addresses)
@@ -371,7 +371,7 @@ def main ():
 		else:
 			for device in devices_with_multiple_addresses:
 				print(f"The device {device} has multiple addresses:")
-				for entry in servicenow_device_dict[device]:
+				for entry in servicenow_device_address_dict[device]:
 					name = entry[SERVICENOW_NETIM_INPUT_DEVICES_NAME]
 					cmdb_ci = entry[SERVICENOW_NETIM_INPUT_DEVICES_CMDBCI]
 					address = entry[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS]
@@ -381,8 +381,8 @@ def main ():
 
 	# Without having other criteria, for now, choose the first IP address for each device name as the primary access address
 	servicenow_devices_to_import = []
-	for servicenow_device_key in servicenow_device_dict:
-		servicenow_devices_to_import.append(servicenow_device_dict[servicenow_device_key][0])
+	for servicenow_device_key in servicenow_device_address_dict:
+		servicenow_devices_to_import.append(servicenow_device_address_dict[servicenow_device_key][0])
 	logger.info("There are {} devices with unique IP addresses from the ServiceNow data".format(len(servicenow_devices_to_import)))
 
 	# Get unique list of locations from the devices that may be imported	
@@ -474,13 +474,16 @@ def main ():
 						netim_device_address = netim_device[SERVICENOW_NETIM_DEVICE_ACCESSINFO][SERVICENOW_NETIM_DEVICE_ACCESSADDRESS].strip()
 
 				# Compare ServiceNow address for device with NetIM's address
-				servicenow_device_address = None
-				if SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS in servicenow_device:
-					servicenow_device_address = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS]
+				# Use the original device address dictionary to get full list of available access addresses
+				servicenow_device_address_list = []
+				if servicenow_device_name in servicenow_device_address_dict:
+					servicenew_device_address_list = servicenow_device_address_dict[servicenow_device_name]
 				
-				if servicenow_device_address == netim_device_address:
-					found_address = True
-					break
+				for servicenow_device in servicenow_device_address_list:
+					servicenow_device_address = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS]
+					if servicenow_device_address == netim_device_address:
+						found_address = True
+						break
 				break
 
 		if found_device == True:
@@ -532,18 +535,22 @@ def main ():
 	groups = []
 	if 'items' in groups_json:
 		groups = groups_json['items']
+	if len(groups) == 0:
+		logger.info('The list of groups/sites returned from NetIM was empty.')
 
 	# Compare locations to import with existing locations
 	existing_sites = []
 	new_sites = []
 	for site in sites_to_import:
+		found_site = False
 		for group in groups:
-			site_name = site[SERVICENOW_NETIM_SITE_NAME]
-			if site_name == group[SERVICENOW_NETIM_SITE_NAME]:
+			site_name = site[SERVICENOW_NETIM_SITE_NAME].strip()
+			if site_name == group[SERVICENOW_NETIM_SITE_NAME].strip():
 				existing_sites.append(site_name)
+				found_site = True
 				break
-
-		new_sites.append(site_name)
+		if found_site == False:
+			new_sites.append(site_name)
 
 	new_sites_count = len(new_sites)
 	print(f"The following {new_sites_count} site(s) are associated with devices and are not defined in NetIM:")
@@ -557,11 +564,12 @@ def main ():
 	existing_site_count = len(existing_sites)
 	if existing_site_count == 0:
 		print("No sites to be imported matched existing names in NetIM database.")
-	elif existing_site_count > 10 and args.summary:
-		print("Displaying the first 10 sites:")
-		print("The following {existing_site_count} site(s) have been defined in NetIM:")
 	else:
-		print(existing_sites)
+		print(f"The following {existing_site_count} site(s) have already been defined in NetIM.")
+		if existing_site_count > 10 and args.summary:
+			print("Displaying the first 10 sites:")
+		else:
+			print(existing_sites)
 
 	#----- Code to compare geographical information -----
 
