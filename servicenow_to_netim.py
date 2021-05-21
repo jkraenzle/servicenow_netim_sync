@@ -143,7 +143,6 @@ SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS = 'IP Address'
 SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS_EMPTY = '#N/A'
 SERVICENOW_NETIM_INPUT_DEVICES_LOCATION = 'Location'
 
-
 SERVICENOW_NETIM_INPUT_LOCATIONS_NAME = 'Name'
 SERVICENOW_NETIM_INPUT_LOCATIONS_CITY = 'City'
 SERVICENOW_NETIM_INPUT_LOCATIONS_REGION = 'State / Province'
@@ -153,6 +152,7 @@ SERVICENOW_NETIM_INPUT_LOCATIONS_LONGITUDE = 'Longitude'
 
 # Constants to use for NetIM site fields
 SERVICENOW_NETIM_SITE_NAME = 'name'
+SERVICENOW_NETIM_SITE_DISPLAYNAME = 'displayName'
 SERVICENOW_NETIM_SITE_COUNTRY = 'country'
 SERVICENOW_NETIM_SITE_REGION = 'region'
 SERVICENOW_NETIM_SITE_CITY = 'city'
@@ -445,10 +445,10 @@ def main ():
 		netim_devices = netim_devices_json['items']
 	logger.info("Retrieved {} device(s) from NetIM".format(len(netim_devices)))
 
-	if netim.get_device_id_by_device_name('BCC-PSA70000-PCS1') == -1:
-		logger.info("Did not find 'BCC-PSA70000-PCS1' in NetIM")
+	if netim.get_device_id_by_device_name('CFWCAZUN01P1') == -1:
+		logger.info("Did not find 'CFWCAZUN01P1' in NetIM")
 	else:
-		logger.info("Found 'BCC-PSA70000-PCS1' in NetIM")
+		logger.info("Found 'CFWCAZUN01P1' in NetIM")
 	
 	new_devices = []
 	devices_with_no_updates = []
@@ -457,16 +457,17 @@ def main ():
 	for servicenow_device in servicenow_devices_to_import:
 		found_device = found_address = False
 		servicenow_device_name = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_NAME].strip()
-		if servicenow_device_name == 'BCC-PSA70000-PCS1':
-			logger.info("Searching for 'BCC-PSA7000-PCS1")
+		if servicenow_device_name == 'CFWCAZUN01P1':
+			logger.info("Searching for 'CFWCAZUN01P1")
 
 		for netim_device in netim_devices:
 			if SERVICENOW_NETIM_DEVICE_NAME not in netim_device:
 				logger.debug(f"Skipping device with no field {SERVICENOW_NETIM_DEVICE_NAME}")
 				continue
 			netim_device_name = netim_device[SERVICENOW_NETIM_DEVICE_NAME].strip()
+			netim_device_displayname = netim_device[SERVICENOW_NETIM_DEVICE_DISPLAYNAME].strip()
 
-			if servicenow_device_name == netim_device_name:
+			if servicenow_device_name == netim_device_name or servicenow_device_name == netim_device_displayname:
 				found_device = True
 
 				# Find address in the data from NetIM
