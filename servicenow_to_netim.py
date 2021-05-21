@@ -445,20 +445,14 @@ def main ():
 		netim_devices = netim_devices_json['items']
 	logger.info("Retrieved {} device(s) from NetIM".format(len(netim_devices)))
 
-	if netim.get_device_id_by_device_name('CFWCAZUN01P1') == -1:
-		logger.info("Did not find 'CFWCAZUN01P1' in NetIM")
-	else:
-		logger.info("Found 'CFWCAZUN01P1' in NetIM")
-	
 	new_devices = []
 	devices_with_no_updates = []
 	different_addresses = []
 
 	for servicenow_device in servicenow_devices_to_import:
-		found_device = found_address = False
+		found_device = False
+		found_address = False
 		servicenow_device_name = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_NAME].strip()
-		if servicenow_device_name == 'CFWCAZUN01P1':
-			logger.info("Searching for 'CFWCAZUN01P1")
 
 		for netim_device in netim_devices:
 			if SERVICENOW_NETIM_DEVICE_NAME not in netim_device:
@@ -495,11 +489,13 @@ def main ():
 				break
 
 		if found_device == True:
+			logger.info(f"Found device {servicenow_device_name}")
 			if found_address == True:
 				devices_with_no_updates.append(servicenow_device_name)
 			else:
 				different_addresses.append(servicenow_device_name)
 		else:
+			logger.info(f"Did not find device {servicenow_device_name}")
 			new_devices.append(servicenow_device_name)
 
 	# Report output
