@@ -26,7 +26,7 @@ from steelscript.netim.core import NetIM
 logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 
-#logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 SERVICENOW_NETIM_SYNC_CUSTOM_ATTRIBUTE_LASTSYNCED = 'Last Synchronized with CMDB'
 SERVICENOW_NETIM_SYNC_CUSTOM_ATTRIBUTE_CMDBCI = 'Configuration ID in CMDB'
@@ -444,6 +444,11 @@ def main ():
 	if netim_devices_json != None and 'items' in netim_devices_json:
 		netim_devices = netim_devices_json['items']
 	logger.info("Retrieved {} device(s) from NetIM".format(len(netim_devices)))
+
+	if netim.get_device_id_by_device_name('BCC-PSA70000-PCS1') == -1:
+		logger.info("Did not find 'BCC-PSA70000-PCS1' in NetIM")
+	else:
+		logger.info("Found 'BCC-PSA70000-PCS1' in NetIM")
 	
 	new_devices = []
 	devices_with_no_updates = []
@@ -452,6 +457,8 @@ def main ():
 	for servicenow_device in servicenow_devices_to_import:
 		found_device = found_address = False
 		servicenow_device_name = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_NAME].strip()
+		if servicenow_device_name == 'BCC-PSA70000-PCS1':
+			logger.info("Searching for 'BCC-PSA7000-PCS1")
 
 		for netim_device in netim_devices:
 			if SERVICENOW_NETIM_DEVICE_NAME not in netim_device:
