@@ -26,7 +26,7 @@ from steelscript.netim.core import NetIM
 logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+#logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 SERVICENOW_NETIM_SYNC_CUSTOM_ATTRIBUTE_LASTSYNCED = 'Last Synchronized with CMDB'
 SERVICENOW_NETIM_SYNC_CUSTOM_ATTRIBUTE_CMDBCI = 'Configuration ID in CMDB'
@@ -492,7 +492,6 @@ def main ():
 					servicenow_device_address_list = servicenow_device_address_dict[servicenow_device_name]
 				
 				for servicenow_device in servicenow_device_address_list:
-					logger.info('Comparing addresses')
 					servicenow_device_address = servicenow_device[SERVICENOW_NETIM_INPUT_DEVICES_ADDRESS].strip()
 					if servicenow_device_address == netim_device_address:
 						found_address = True
