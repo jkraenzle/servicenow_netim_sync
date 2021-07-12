@@ -1,0 +1,9 @@
+hostname: example.service-now.com
+username: admin
+password: admin
+include_filters:
+  - name: monitor
+    value: False
+exclude_filters:
+  - name: monitor
+    value: True

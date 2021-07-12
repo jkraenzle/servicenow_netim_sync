@@ -25,7 +25,7 @@ logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 
 #logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-#logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
 #----- Helper functions
@@ -205,9 +205,11 @@ def sync_servicenow_devices_filter(devices, include_filters=[], exclude_filters=
 				device_value = sync_servicenow_resource_value_get(device[filter_name])
 				if filter_value == device_value:
 					included_devices.append(device)
+					continue
 				device_value = sync_servicenow_resource_display_value_get(device[filter_name])
 				if filter_value == device_value:
 					included_devices.append(device)
+					continue
 
 	# Filter by exclusion
 	devices_after_exclusion = []
@@ -223,9 +225,11 @@ def sync_servicenow_devices_filter(devices, include_filters=[], exclude_filters=
 				device_value = sync_servicenow_resource_value_get(device[filter_name])
 				if filter_value == device_value:
 					excluded_devices.append(device)
+					continue
 				device_value = sync_servicenow_resource_display_value_get(device[filter_name])
 				if filter_value == device_value:
 					excluded_devices.append(device)
+					continue
 
 	# Only return devices that are intersecting between the two sets; exclusion will take precedence	
 	filtered_devices = [device for device in included_devices if device not in excluded_devices]
@@ -358,12 +362,12 @@ def sync_servicenow_devices_empty_addresses_report(devices_with_empty_addresses,
 			print(list(devices_with_empty_addresses.keys())[:10])
 		else:
 			print(f"The following devices have empty addresses:")
-			for device in devices_with_empty_addresses.items():
-				name = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_NAME]])
-				cmdb_ci = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_ID]])
-				address = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_ADDRESS]])
-				location = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_LOCATION]])
-				print(f"  {name}, {cmdb_ci}, {address}, {location}")
+			for device_name, device_instances in devices_with_empty_addresses.items():
+				for device in device_instances:
+					cmdb_ci = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_ID]])
+					address = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_ADDRESS]])
+					location = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_LOCATION]])
+					print(f"  {device_name}, {cmdb_ci}, {address}, {location}")
 		print("")
 
 	return
@@ -379,12 +383,12 @@ def sync_servicenow_devices_invalid_addresses_report(devices_with_invalid_addres
 			print(list(devices_with_invalid_addresses.keys())[:10])
 		else:
 			print(f"The following devices have invalid addresses:")
-			for device in devices_with_invalid_addresses.items():
-				name = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_NAME]])
-				cmdb_ci = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_ID]])
-				address = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_ADDRESS]])
-				location = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_LOCATION]])
-				print(f"  {name}, {cmdb_ci}, {address}, {location}")
+			for device_name, device_instances in devices_with_invalid_addresses.items():
+				for device in device_instances:
+					cmdb_ci = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_ID]])
+					address = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_ADDRESS]])
+					location = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_LOCATION]])
+					print(f"  {device_name}, {cmdb_ci}, {address}, {location}")
 		print("")
 
 	return
@@ -714,6 +718,7 @@ NETIM_DEVICE_DISPLAYNAME = 'displayName'
 NETIM_DEVICE_ACCESSINFO = 'deviceAccessInfo'
 NETIM_DEVICE_ACCESSADDRESS = 'accessAddress'
 NETIM_DEVICE_GROUP = 'group'
+NETIM_DEVICE_CMDB_ID = 'cmdb_ci'
 
 # Constants to use for NetIM Site/Group fields
 NETIM_SITE_NAME = 'name'
@@ -722,6 +727,7 @@ NETIM_SITE_REGION = 'region'
 NETIM_SITE_CITY = 'city'
 NETIM_SITE_LATITUDE = 'latitude'
 NETIM_SITE_LONGITUDE = 'longitude'
+NETIM_SITE_CMDB_ID = 'cmdb_ci'
 
 def sync_servicenow_to_netim_devices_convert(devices_to_import, lookup_table):
 	converted_devices = []
@@ -737,6 +743,8 @@ def sync_servicenow_to_netim_devices_convert(devices_to_import, lookup_table):
 
 		group = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_LOCATION]])
 		converted_device[NETIM_DEVICE_GROUP] = group
+
+		converted_device[NETIM_DEVICE_CMDB_ID] = clean(device[lookup_table[SYNC_SERVICENOW_LOOKUP_DEVICES_ID]])
 		converted_devices.append(converted_device)
 		
 	return converted_devices
@@ -1024,8 +1032,10 @@ def sync_servicenow_netim_location_validation(sites_to_import, netim):
 
 #----- NetIM Functions
 
-NETIM_CUSTOM_ATTRIBUTE_LASTSYNCED = 'Last Synchronized with CMDB'
-NETIM_CUSTOM_ATTRIBUTE_CMDBCI = 'CI ID'
+NETIM_CUSTOM_ATTRIBUTE_LASTSYNCED = 'Timestamp Synchronized with CMDB'
+NETIM_CUSTOM_ATTRIBUTE_LASTSYNCED_DESCRIPTION = 'Human readable value of when device was created from ServiceNow sync'
+NETIM_CUSTOM_ATTRIBUTE_CMDB_ID = 'CI ID'
+NETIM_CUSTOM_ATTRIBUTE_CMDB_ID_DESCRIPTION = 'ServiceNow CMDB Configuration Item (CI) Identifier'
 
 # Constants to use for NetIM country, region, and city searches
 NETIM_COUNTRY_NAME = 'name'
@@ -1034,18 +1044,66 @@ NETIM_REGION_NAME = 'name'
 NETIM_REGION_ID = 'id'
 NETIM_CITY_NAME = 'name'
 
-def sync_netim_synchronization_time_update(netim, device_ids):
+def sync_netim_custom_attribute_devices_cmdb_id(netim, device_names, devices):
+	# Add custom attribute to NetIM devices for CMDB CI
+	devices_to_update = [device for device in devices if device[NETIM_DEVICE_NAME] in device_names]
+	
+	# Find if the attribute has already been added to NetIM
+	attribute_id = netim.get_custom_attribute_id_by_name(NETIM_CUSTOM_ATTRIBUTE_CMDB_ID)
+
+	# If the custom attribute has not been added to NetIM, add it and find its newly created attribute ID
+	response = None
+	if attribute_id == -1:
+		try:
+			response = netim.add_custom_attribute(NETIM_CUSTOM_ATTRIBUTE_CMDB_ID,
+				NETIM_CUSTOM_ATTRIBUTE_CMDB_ID_DESCRIPTION)
+			if response == None:
+				logger.info("Failed to create Custom Attribute '{}' in NetIM".format(NETIM_CUSTOM_ATTRIBUTE_CMDB_ID))
+				return
+		except:
+			logger.debug("Exception when adding Custom Attribute to NetIM.")
+			raise
+
+	# Provide time for the attribute to be processed
+	time.sleep(2)
+
+	# Now add Custom Attribute Value for each device
+	response = None
+	for device in devices_to_update:
+		try:
+			device_id = netim.get_device_id_by_device_name(device[NETIM_DEVICE_NAME])
+			if device_id != -1:
+				response = netim.add_custom_attribute_values(NETIM_CUSTOM_ATTRIBUTE_CMDB_ID, 
+					device[NETIM_DEVICE_CMDB_ID], device_ids=[device_id])
+				if response == None:
+					logger.debug("Unable to add Custom Attribute Value for device")
+
+		except NameError as e:
+			logger.debug(f"Name error: {e}")
+		except TypeError as e:
+			logger.debug(f"Type error: {e}")
+		except:
+			logger.debug("Exception when importing Custom Attribute values for devices")
+			logger.debug("Unexpected error {}".format(sys.exc_info()[0]))
+
+	return 
+
+def sync_netim_custom_attribute_devices_timestamp(netim, devices):
 
 	# Add custom attribute to NetIM devices for synchronization time
-	attribute_id = netim.get_custom_attribute_id_by_name(SYNC_SERVICENOW_SYNC_CUSTOM_ATTRIBUTE_LASTSYNCED)
+	attribute_id = netim.get_custom_attribute_id_by_name(NETIM_CUSTOM_ATTRIBUTE_LASTSYNCED)
 
 	# If the synchronization custom attribute has not been added to NetIM, add it and find its newly
 	# created attribute ID
+	response = None
 	if attribute_id == -1:
-		response = netim.add_custom_attribute(SYNC_SERVICENOW_SYNC_CUSTOM_ATTRIBUTE_LASTSYNCED, 
-			"The timestamp of the last update of the device from a CMDB.")
+		response = netim.add_custom_attribute(NETIM_CUSTOM_ATTRIBUTE_LASTSYNCED,
+			NETIM_CUSTOM_ATTRIBUTE_LASTSYNCED_DESCRIPTION)
 		if response == None:
 			logger.debug("Failed to create Custom Attribute for synchronization time in NetIM")
+
+	# Provide time for the attribute to be processed
+	time.sleep(2)
 
 	# Get time stamp value
 	current_time = datetime.datetime.now()
@@ -1054,16 +1112,32 @@ def sync_netim_synchronization_time_update(netim, device_ids):
 
 	response = None
 	try:
-		# Add time stamp value to NetIM
-		response = netim.import_custom_attribute_values_for_devices(device_ids, 
-			SYNC_SERVICENOW_SYNC_CUSTOM_ATTRIBUTE_LASTSYNCED, current_time_str) 
+		# Loop over the devices, and if the device already has a value, update it
+		for device in devices:
+			device_id = netim.get_device_id_by_device_name(device[NETIM_DEVICE_NAME])
+			if device_id != -1:
+				values = netim.get_custom_attribute_values_for_device_by_attribute_name(device_id, NETIM_CUSTOM_ATTRIBUTE_LASTSYNCED)
+			else:
+				continue
+
+			response = None
+			if len(values) == 0:
+				# Add time stamp value to NetIM
+				response = netim.add_custom_attribute_values(NETIM_CUSTOM_ATTRIBUTE_LASTSYNCED, current_time_str, device_ids=[device_id]) 
+			elif len(values) > 0:
+				if 'id' in values[0]:
+					value_id = values[0]['id']
+					response = netim.update_custom_attribute_value_from_id(NETIM_CUSTOM_ATTRIBUTE_LASTSYNCED, value_id, current_time_str)
+				if len(values) > 1:
+					logger.debug(f"More than one Custom Attribute Value found for {NETIM_CUSTOM_ATTRIBUTE_LASTSYNCED}")
+					logger.debug(f"Only one value is expected.")
 	except NameError as e:
 		logger.debug(f"Name error: {e}")
 	except:
 		logger.debug("Exception when importing Custom Attribute values for devices")
 		logger.debug("Unexpected error {}".format(sys.exc_info()[0]))
 
-	return response
+	return
 
 def sync_netim_sites_create(netim, site_names, sites):
 
@@ -1236,7 +1310,7 @@ def main ():
 		print("ServiceNow to NetIM Reconciliation Report")
 		print("---------------------------------------------------------------------------------------------------")
 		print("")
-		print("Step 1 of 3: Reconciling devices in NetIM")
+		print("Step 1 of 4: Reconciling devices in NetIM")
 		print("")
 		# Sync list of devices to NetIM
 		# existing_devices?
@@ -1244,11 +1318,12 @@ def main ():
 		new_devices = device_comparison[SYNC_SERVICENOW_NETIM_COMPARISON_DEVICES_NEW]
 		new_device_ids = sync_netim_devices_create(netim, new_devices, converted_devices)	
 		print("Created {} out of {} found new, valid devices in NetIM".format(len(new_device_ids), len(new_devices)))
+		### For now, don't update different devices
 		#updated_device_ids = sync_netim_devices_update(netim, \
 		#	device_comparison[SYNC_SERVICENOW_NETIM_COMPARISON_DEVICES_DIFFERENT])
 
 		print("")
-		print("Step 2 of 3: Reconciling sites in NetIM")
+		print("Step 2 of 4: Reconciling sites in NetIM")
 		print("")
 		# Sync list of locations to NetIM
 		new_sites = site_comparison[SYNC_SERVICENOW_NETIM_COMPARISON_SITES_NEW]
@@ -1256,22 +1331,20 @@ def main ():
 		print("Created {} out of {} found new, valid sites in NetIM".format(len(new_sites_ids), len(new_sites)))
 
 		print("")
-		print("Step 3 of 3: Adding devices to sites in NetIM")
+		print("Step 3 of 4: Adding devices to sites in NetIM")
 		print("")
 		# Add devices to sites in NetIM
 		sync_netim_sites_devices_add(netim, converted_devices)
 
-
 		print("")
-		print("Step 4 of X: Adding custom attributes in NetIM")
+		print("Step 4 of 4: Adding custom attributes in NetIM")
 		print("")
 		# Set up a process to track when devices were last synchronized with the CMDB. This allows an
 		# automated way to determine if a device should be aged out because it is no longer tracked in
 		# the CMDB
-		# updated_ids = new_device_ids + updated_device_ids + new_sites_ids
-		#response = sync_netim_synchronization_time_update(netim, updated_device_ids)
-		#print(response)
-
+		sync_netim_custom_attribute_devices_cmdb_id(netim, new_devices, converted_devices)
+		sync_netim_custom_attribute_devices_timestamp(netim, converted_devices)
+		
 
 	print("")
 	print("End of Reconciliation Report")
