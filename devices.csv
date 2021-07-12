@@ -1,0 +1,2 @@
+Name,Class,Location,IP Address,CI ID,CI Status,Manufacturer,Model,Monitor
+Test1,Switch,Test_Site,10.1.1.1,CI000000001,Operational,Unknown Manufacturer,Unknown Manufacturer Model,TRUE

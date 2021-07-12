@@ -25,7 +25,7 @@ logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 
 #logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+#logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
 #----- Helper functions
@@ -59,11 +59,12 @@ def dictionary_from_csv(file_path):
 	fields = []
 	rows = []
 	try:
-		with open(file_path, encoding=SYNC_SERVICENOW_CSV_ENCODING, errors='replace') as file:
+		with open(file_path, encoding=CSV_ENCODING, errors='replace') as file:
 			reader = csv.DictReader(file, skipinitialspace=True, quoting=csv.QUOTE_MINIMAL)
 			rows = list(reader)
 	except:
 		logger.debug(f"Error reading file {file_path}")
+		logger.debug("Unexpected error {}".format(sys.exc_info()[0]))
 
 	return rows
 
@@ -506,10 +507,10 @@ SYNC_SERVICENOW_INPUT_CSV_DEVICES_ADDRESS = 'IP Address'
 SYNC_SERVICENOW_INPUT_CSV_DEVICES_ADDRESS_EMPTY = '#N/A'
 SYNC_SERVICENOW_INPUT_CSV_DEVICES_ID = 'CI ID'
 SYNC_SERVICENOW_INPUT_CSV_DEVICES_STATUS = 'CI Status'
-SYNC_SERVICENOW_INPUT_CSV_MANUFACTURER = 'Manufacturer'
-SYNC_SERVICENOW_INPUT_CSV_MODEL = 'Model'
-SYNC_SERVICENOW_INPUT_CSV_MONITOR = 'Monitor'
-SYNC_SERVICENOW_INPUT_CSV_MONITOR_TYPE = 'Monitored Type'
+SYNC_SERVICENOW_INPUT_CSV_DEVICES_MANUFACTURER = 'Manufacturer'
+SYNC_SERVICENOW_INPUT_CSV_DEVICES_MODEL = 'Model'
+SYNC_SERVICENOW_INPUT_CSV_DEVICES_MONITOR = 'Monitor'
+SYNC_SERVICENOW_INPUT_CSV_DEVICES_MONITOR_TYPE = 'Monitored Type'
 
 SYNC_SERVICENOW_INPUT_API_LOCATIONS_NAME = 'name'
 SYNC_SERVICENOW_INPUT_API_LOCATIONS_CITY = 'city'
@@ -1245,7 +1246,7 @@ def main ():
 	print("---------------------------------------------------------------------------------------------------")
 
 	# Get device and location import from API (or after export from CSV)
-	if args.servicenow_yml != None or args.servicenow_yml != "":
+	if args.servicenow_yml != None and args.servicenow_yml != "":
 		use_api = True
 		text = 'API'
 	else:
@@ -1346,9 +1347,10 @@ def main ():
 		sync_netim_custom_attribute_devices_timestamp(netim, converted_devices)
 		
 
-	print("")
-	print("End of Reconciliation Report")
-	print("---------------------------------------------------------------------------------------------------")
+		print("")
+		print("End of Reconciliation Report")
+		print("---------------------------------------------------------------------------------------------------")
+
 	return
 
 if __name__ == "__main__":
