@@ -72,7 +72,7 @@ def yamlread(filename):
 	try:
 		if filename != None:
 			with open(filename) as filehandle:
-				yamlresult = yaml.load(filehandle)
+				yamlresult = yaml.safe_load(filehandle)
 		else:
 			yamlresult = None
 
@@ -1206,7 +1206,7 @@ def sync_netim_devices_import(netim):
 def sync_netim_authenticate(netim_yml):
 	netim_hostname, netim_username, netim_password = credentials_get(netim_yml)
 	if netim_password == None or netim_password == "":
-		print("Please provide password for user {netim_username} on NetIM {netim_hostname}")
+		print(f"Please provide password for user {netim_username} on NetIM {netim_hostname}")
 		netim_password = getpass.getpass()
 
 	netim = None
